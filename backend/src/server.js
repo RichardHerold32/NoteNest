@@ -11,17 +11,17 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
+const CORS_ORIGIN = process.env.CORS_ORIGIN;
 
 // Core middleware
 app.use(express.json());
 
-//cors
-if (process.env.NODE_ENV !== "production"){
-app.use(cors(
-  {
-    origin: 'http://localhost:5173'
-  }
-))
+// CORS: use explicit origin when provided, otherwise allow requests.
+if (CORS_ORIGIN) {
+  const origins = CORS_ORIGIN.split(",").map((origin) => origin.trim());
+  app.use(cors({ origin: origins }));
+} else {
+  app.use(cors());
 }
 
 // Rate limiting (can be scoped later)
@@ -31,12 +31,15 @@ app.use(rateLimiter);
 app.use("/api/notes", notesRoutes);
 
 if (process.env.NODE_ENV === "production") {
-    app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-    app.get("*", (req, res) => {
+  // SPA fallback for non-API GET requests (works across Express versions).
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api")) {
+      return next();
+    }
     res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
   });
-
 }
 
 // Start server AFTER DB connection
