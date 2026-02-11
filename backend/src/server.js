@@ -11,17 +11,17 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
+const CORS_ORIGIN = process.env.CORS_ORIGIN;
 
 // Core middleware
 app.use(express.json());
 
-//cors
-if (process.env.NODE_ENV !== "production"){
-app.use(cors(
-  {
-    origin: 'http://localhost:5173'
-  }
-))
+// CORS: allow configured origins in any environment; fallback to open CORS.
+if (CORS_ORIGIN) {
+  const origins = CORS_ORIGIN.split(",").map((origin) => origin.trim());
+  app.use(cors({ origin: origins }));
+} else {
+  app.use(cors());
 }
 
 // Rate limiting (can be scoped later)
